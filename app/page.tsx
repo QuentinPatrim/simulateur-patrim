@@ -1,22 +1,42 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useSpring, useTransform, useMotionValue } from "framer-motion";
 import { Calculator, Home, ArrowRight, Phone, MapPin, X, Mail, Building2, Wallet, PiggyBank, Stamp, Coins, CheckCircle2, AlertTriangle, Info, BedDouble, Square, MapPinned, Loader2, ArrowUpRight, Warehouse, Car, TrendingUp, Receipt, TrendingDown, Activity } from "lucide-react";
 
 // --- UTILITAIRES ---
 
+// Composant qui anime le défilement des chiffres
 function AnimatedNumber({ value, currency = true, percentage = false }: { value: number; currency?: boolean, percentage?: boolean }) {
-  return (
-    <span>
-      {new Intl.NumberFormat("fr-FR", {
-        style: percentage ? "percent" : (currency ? "currency" : "decimal"),
+  // 1. On crée une valeur de mouvement qui commence à 0
+  const motionValue = useMotionValue(0);
+  
+  // 2. On applique un effet "ressort" pour que la transition soit fluide
+  const springValue = useSpring(motionValue, { stiffness: 60, damping: 15 });
+
+  // 3. Dès que la vraie valeur change, on demande au ressort d'aller vers cette nouvelle valeur
+  useEffect(() => {
+    motionValue.set(value);
+  }, [value, motionValue]);
+
+  // 4. On transforme la valeur numérique en texte formaté (Devise ou %) à chaque micro-seconde de l'animation
+  const displayValue = useTransform(springValue, (latest) => {
+    if (percentage) {
+        return new Intl.NumberFormat("fr-FR", {
+            style: "percent",
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 2,
+        }).format(latest); // Le pourcentage est souvent < 1 (ex: 0.05), attention à l'échelle si vos données sont en entiers (5.0)
+    }
+    
+    return new Intl.NumberFormat("fr-FR", {
+        style: currency ? "currency" : "decimal",
         currency: "EUR",
-        maximumFractionDigits: percentage ? 2 : 0,
-        minimumFractionDigits: percentage ? 2 : 0,
-      }).format(value)}
-    </span>
-  );
+        maximumFractionDigits: 0,
+    }).format(Math.round(latest));
+  });
+
+  return <motion.span>{displayValue}</motion.span>;
 }
 
 const BubbleInput = ({ label, value, onChange, suffix, icon: Icon }: any) => (
@@ -365,7 +385,7 @@ export default function PatrimPage() {
                 </div>
                 <div className="text-center md:text-right">
                     <h1 className="text-3xl md:text-4xl font-light text-white">Simulateur Immobilier<span className="text-[#d35f52]">.</span></h1>
-                    <p className="text-zinc-500 text-sm md:text-base mt-2">Donnez vie à vos projet</p>
+                    <p className="text-zinc-500 text-sm md:text-base mt-2">Donnez vie à vos projets</p>
                 </div>
             </header>
 
